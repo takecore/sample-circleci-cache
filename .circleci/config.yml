@@ -1,8 +1,5 @@
 ---
 
-
----
-
 version: 2
 jobs:
   generate_cache:
