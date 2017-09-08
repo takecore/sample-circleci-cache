@@ -13,7 +13,7 @@ jobs:
           name: Check cache file, if not exists then pull images and generate cache.
           command: |
             if [ ! -f ~/caches/images.tar ]; then
-              docker-compose pull --parallel sample-mysql
+              docker-compose pull sample-mysql
               docker-compose build
               mkdir -p ~/caches
               docker save $(docker images | awk 'NR>=2 && ! /^<none>/{print $1}') -o ~/caches/images.tar
