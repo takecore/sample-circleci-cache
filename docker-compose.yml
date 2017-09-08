@@ -1,0 +1,30 @@
+---
+version: '2'
+
+
+services:
+  sample-laravel-app:
+    build: .
+    image: sample-laravel-app
+    container_name: sample-laravel-app
+    ports:
+      - 80:80
+    volumes:
+      - ./app:/usr/src/app
+      - ./compose/apache/000-default.conf:/etc/apache2/sites-enabled/000-default.conf
+    working_dir: /usr/src/app
+    depends_on:
+      - sample-mysql
+
+  sample-mysql:
+    image: mysql:5.7
+    container_name: sample-mysql
+    volumes:
+      - ./compose/volumes/mysql:/var/lib/mysql
+    ports:
+      - 127.0.0.1:3306:3306
+    environment:
+      MYSQL_USER:                 root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE:             sample-laravel-app
+      TZ: JST-9

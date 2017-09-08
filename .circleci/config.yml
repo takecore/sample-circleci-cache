@@ -1,0 +1,55 @@
+---
+
+
+---
+
+version: 2
+jobs:
+  generate_cache:
+    machine: true
+    steps:
+      - checkout
+      - restore_cache:
+          key: docker-{{ checksum ".circleci/config.yml" }}-{{ checksum "docker-compose.yml" }}-{{ checksum "Dockerfile" }}
+          paths: ~/caches/images.tar
+      - run:
+          name: Check cache file, if not exists then pull images and generate cache.
+          command: |
+            if [ ! -f ~/caches/images.tar ]; then
+              docker-compose pull --parallel sample-mysql
+              docker-compose build
+              mkdir -p ~/caches
+              docker save $(docker images | awk 'NR>=2 && ! /^<none>/{print $1}') -o ~/caches/images.tar
+            fi
+      - save_cache:
+          key: docker-{{ checksum ".circleci/config.yml" }}-{{ checksum "docker-compose.yml" }}-{{ checksum "Dockerfile" }}
+          paths: ~/caches/images.tar
+
+  test:
+    machine: true
+    steps:
+      - checkout
+      - restore_cache:
+          key: docker-{{ checksum ".circleci/config.yml" }}-{{ checksum "docker-compose.yml" }}-{{ checksum "Dockerfile" }}
+          paths: ~/caches/images.tar
+      - run:
+          name: Load Docker images
+          command: docker load -i ~/caches/images.tar
+      - run:
+          name: Run tests
+          command: |
+            docker-compose run sample-laravel-app /bin/bash -c '\
+              cp .env.example .env && \
+              composer install --no-interaction && \
+              php artisan key:generate && \
+              ./artisan migrate:refresh && \
+              ./vendor/bin/phpunit -c phpunit.circle.xml'
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - generate_cache
+      - test:
+          requires:
+            - generate_cache
